@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gsb-mavi: #002B67;
+  --gsb-kirmizi: #E30A17;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Kartlar için özel gölge ve yuvarlatma */
+.gsb-card {
+  @apply bg-white rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-slate-100 p-8;
+}
+
+/* Adım numaraları için */
+.step-number {
+  @apply w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300;
+}
