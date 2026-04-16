@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function Home() {
+  const [islemTuru, setIslemTuru] = useState<"al" | "sorgula" | null>(null);
   const [adim, setAdim] = useState(1);
   const [seciliGun, setSeciliGun] = useState<number | null>(null);
   const [seciliSaha, setSeciliSaha] = useState<string | null>(null);
@@ -10,196 +11,309 @@ export default function Home() {
   const [onayKodu, setOnayKodu] = useState("");
   
   const [formData, setFormData] = useState({
-    ad_soyad: "",
+    ad: "",
+    soy_ad: "",
+    tc_no: "",
     telefon: "",
     eposta: ""
   });
+  
+  const katilimciSayisi = seciliSaha === "Basketbol Sahası" ? 9 : 11;
+  const [katilimcilar, setKatilimcilar] = useState<string[]>(Array(11).fill(""));
 
-  const simdi = new Date();
-  const buGunHangiGun = simdi.getDate();
-  const buSaatKac = simdi.getHours();
+  const simdi = useMemo(() => new Date(), []);
   const ayIsmi = simdi.toLocaleString('tr-TR', { month: 'long' });
   const yil = simdi.getFullYear();
-  const ayinGunSayisi = new Date(yil, simdi.getMonth() + 1, 0).getDate();
-  const gunler = Array.from({ length: ayinGunSayisi }, (_, i) => i + 1);
+  const buGun = simdi.getDate();
+  const buSaat = simdi.getHours();
+
+  const gunler = Array.from({ length: new Date(yil, simdi.getMonth() + 1, 0).getDate() }, (_, i) => i + 1);
   const tumSaatler = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
   const adimlar = [
-    { n: 1, baslik: "Tarih" },
-    { n: 2, baslik: "Saha & Saat" },
-    { n: 3, baslik: "Kayıt" },
-    { n: 4, baslik: "Doğrulama" },
-    { n: 5, baslik: "Onay" }
+    { n: 1, b: "TARİH" }, { n: 2, b: "SAHA" }, 
+    { n: 3, b: "KAYIT" }, { n: 4, b: "KOD" },
+    { n: 5, b: "TAKIM" }, { n: 6, b: "ONAY" }
   ];
 
-  const formatTelefon = (value: string) => {
-    const sadeceSayi = value.replace(/\D/g, "");
-    if (sadeceSayi.length > 11) return formData.telefon;
-    let res = sadeceSayi;
-    if (sadeceSayi.length > 4) res = `${sadeceSayi.slice(0, 4)} ${sadeceSayi.slice(4)}`;
-    if (sadeceSayi.length > 7) res = `${res.slice(0, 8)} ${sadeceSayi.slice(7)}`;
-    if (sadeceSayi.length > 9) res = `${res.slice(0, 11)} ${sadeceSayi.slice(9)}`;
-    return res;
+  const [sorguTC, setSorguTC] = useState("");
+  const [bulunanRandevu, setBulunanRandevu] = useState<any>(null);
+
+  const anasayfayaDon = () => {
+    setIslemTuru(null);
+    setAdim(1);
+    setSeciliGun(null);
+    setSeciliSaha(null);
+    setSeciliSaat(null);
+    setOnayKodu("");
+    setFormData({ ad: "", soy_ad: "", tc_no: "", telefon: "", eposta: "" });
+    setKatilimcilar(Array(11).fill(""));
+    setSorguTC("");
+    setBulunanRandevu(null);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (name === "telefon") {
-      setFormData(prev => ({ ...prev, telefon: formatTelefon(value) }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+  const formatPhoneNumber = (value: string) => {
+    const s = value.replace(/\D/g, "");
+    let r = "";
+    if (s.length > 0) r = s.substring(0, 4);
+    if (s.length > 4) r += " " + s.substring(4, 7);
+    if (s.length > 7) r += " " + s.substring(7, 9);
+    if (s.length > 9) r += " " + s.substring(9, 11);
+    return r;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    let v = value;
+    if (field === "ad" || field === "soy_ad") v = value.toUpperCase();
+    if (field === "tc_no") v = value.replace(/\D/g, "").slice(0, 11);
+    if (field === "telefon") v = formatPhoneNumber(value);
+    setFormData(prev => ({ ...prev, [field]: v }));
+  };
+
+  const formGecerli = formData.ad.length > 1 && formData.soy_ad.length > 1 && formData.tc_no.length === 11 && formData.telefon.length === 14 && formData.eposta.includes("@");
+  
+  const takimGecerli = useMemo(() => {
+    const aktifListe = katilimcilar.slice(0, katilimciSayisi);
+    return aktifListe.every(k => k.trim().length > 3);
+  }, [katilimcilar, katilimciSayisi]);
+
+  const iptalButonuAktif = (randevuGunu: number) => {
+    const randevuTarihi = new Date(yil, simdi.getMonth(), randevuGunu);
+    const fark = randevuTarihi.getTime() - simdi.getTime();
+    return (fark / (1000 * 60 * 60)) > 24;
+  };
+
+  const handleSorgula = () => {
+    if (sorguTC.length === 11) {
+      setBulunanRandevu({
+        ad: "AHMET YILMAZ",
+        saha: "Voleybol Sahası",
+        tarih: buGun + 2,
+        saat: "14:00",
+        durum: "Beklemede"
+      });
     }
   };
 
-  const formGecerli = 
-    formData.ad_soyad.trim().length > 3 && 
-    formData.telefon.length === 14 && 
-    formData.eposta.includes("@") &&
-    formData.eposta.split("@")[0].length > 0;
-
-  const sahalar = [
-    { id: "Voleybol Sahası", emoji: "🏐" },
-    { id: "Basketbol Sahası", emoji: "🏀" }
-  ];
-
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      <div className="flex justify-between mb-16 relative">
-        <div className="absolute top-5 left-0 w-full h-1 bg-slate-200 -z-10 rounded-full" />
-        {adimlar.map((item) => (
-          <div key={item.n} className="flex flex-col items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${adim >= item.n ? "bg-[#002B67] text-white scale-110 shadow-lg" : "bg-white text-slate-400 border-2 border-slate-200"}`}>
-              {item.n}
-            </div>
-            <span className={`text-[10px] font-black uppercase tracking-widest ${adim >= item.n ? "text-[#002B67]" : "text-slate-400"}`}>
-              {item.baslik}
-            </span>
-          </div>
-        ))}
+    <div className="w-full max-w-4xl mx-auto py-6 md:py-12 px-4 font-montserrat antialiased overflow-x-hidden">
+      
+      <div className="flex justify-start mb-10 h-14 md:h-20">
+        <div className="opacity-0 pointer-events-none">GSB</div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-blue-900/10 border border-slate-100 p-8 md:p-12 transition-all">
-        
-        {adim === 1 && (
-          <div className="text-center animate-in fade-in duration-500">
-            <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-[#002B67] shadow-inner border border-blue-100 font-bold text-3xl flex items-center justify-center">🗓️</div>
-            <h2 className="text-3xl font-black text-[#002B67] tracking-tight mb-2 uppercase tracking-tighter">Tarih Seçin</h2>
-            <p className="text-[#E30A17] font-bold mb-10 text-xs tracking-[0.2em] uppercase underline decoration-[#E30A17] underline-offset-8 decoration-2">
-              {seciliGun ? `${seciliGun} ${ayIsmi.toUpperCase()} ${yil}` : "GEÇMİŞ TARİHLERE RANDEVU ALINAMAZ"}
-            </p>
-            <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-200 mb-10 shadow-inner">
-              <div className="mb-6"><span className="font-black text-[#002B67] uppercase tracking-[0.3em] text-lg">{ayIsmi} {yil}</span></div>
-              <div className="grid grid-cols-7 gap-3 max-w-xs mx-auto">
-                {gunler.map((g) => {
-                  const gecmisGun = g < buGunHangiGun;
-                  return (
-                    <button key={g} disabled={gecmisGun} onClick={() => setSeciliGun(g)} className={`aspect-square flex items-center justify-center text-sm font-black rounded-2xl transition-all border-2 ${gecmisGun ? "bg-slate-100 text-slate-300 border-transparent cursor-not-allowed opacity-50" : seciliGun === g ? "bg-[#E30A17] text-white border-[#E30A17] scale-110 shadow-xl" : "bg-white text-slate-700 border-transparent hover:border-[#002B67] hover:text-[#002B67] shadow-sm"}`}>{g}</button>
-                  );
-                })}
+      {!islemTuru ? (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-10 animate-in fade-in duration-700 px-4">
+           <div className="text-center">
+             <h1 className="text-4xl md:text-6xl font-black text-[#002B67] uppercase tracking-tighter leading-tight">GSB MANAVGAT</h1>
+             <div className="h-1.5 w-24 bg-[#E30A17] mx-auto rounded-full mt-2"></div>
+           </div>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+             <button onClick={() => setIslemTuru("al")} className="group p-8 md:p-10 bg-[#002B67] text-white rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-blue-950">
+               <span className="text-4xl mb-4 group-hover:animate-bounce transition-transform">⚽</span>
+               <span className="font-black text-lg md:text-xl tracking-widest uppercase">Randevu Al</span>
+             </button>
+             <button onClick={() => setIslemTuru("sorgula")} className="group p-8 md:p-10 bg-white text-[#002B67] border-4 border-[#002B67] rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-slate-200">
+               <span className="text-4xl mb-4 group-hover:animate-[spin_3s_linear_infinite] transition-transform">🔍</span>
+               <span className="font-black text-lg md:text-xl tracking-widest uppercase">Sorgulama</span>
+             </button>
+           </div>
+        </div>
+      ) : islemTuru === "sorgula" ? (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto w-full px-2">
+           <button onClick={anasayfayaDon} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm tracking-widest">← GERİ DÖN</button>
+           <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 md:p-10">
+             <h2 className="text-2xl font-black text-[#002B67] uppercase text-center mb-10 tracking-tighter">Randevu Sorgulama</h2>
+             <div className="space-y-4 mb-10">
+               <input 
+                 maxLength={11}
+                 placeholder="TC KİMLİK NO" 
+                 value={sorguTC}
+                 onChange={(e) => setSorguTC(e.target.value.replace(/\D/g, ""))}
+                 className="w-full h-16 px-6 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-black text-lg text-center transition-all shadow-inner tracking-widest"
+               />
+               <button onClick={handleSorgula} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl active:scale-95 transition-all tracking-widest">SORGULA</button>
+             </div>
+
+             {bulunanRandevu && (
+               <div className="space-y-6 animate-in zoom-in duration-500">
+                 <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 relative shadow-inner">
+                   <div className="absolute top-0 left-0 w-2 h-full bg-[#E30A17]" />
+                   <div className="grid grid-cols-1 gap-4 uppercase text-[11px] font-black text-slate-400 tracking-widest">
+                      <div className="flex justify-between border-b border-white pb-3"><span>SORUMLU</span><span className="text-[#002B67]">{bulunanRandevu.ad}</span></div>
+                      <div className="flex justify-between border-b border-white pb-3"><span>SAHA</span><span className="text-[#002B67]">{bulunanRandevu.saha}</span></div>
+                      <div className="flex justify-between border-b border-white pb-3"><span>TARİH / SAAT</span><span className="text-[#002B67]">{bulunanRandevu.tarih} {ayIsmi.toUpperCase()} / {bulunanRandevu.saat}</span></div>
+                      <div className="flex justify-between"><span>DURUM</span><span className={bulunanRandevu.durum === "Kesinleşti" ? "text-green-600" : "text-orange-500"}>{bulunanRandevu.durum.toUpperCase()}</span></div>
+                   </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   {bulunanRandevu.durum === "Beklemede" && iptalButonuAktif(bulunanRandevu.tarih) && (
+                     <button className="py-5 bg-green-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg hover:bg-green-700 transition-all">KESİNLEŞTİR</button>
+                   )}
+                   {iptalButonuAktif(bulunanRandevu.tarih) ? (
+                     <button className="py-5 bg-white text-red-600 border-2 border-red-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm">İPTAL ET</button>
+                   ) : (
+                     <div className="col-span-full p-5 bg-red-50 rounded-xl text-red-500 text-[10px] font-black text-center border border-red-100 uppercase tracking-tighter">
+                       Randevuya 24 saatten az kaldığı için işlem yapılamaz.
+                     </div>
+                   )}
+                 </div>
+               </div>
+             )}
+           </div>
+        </div>
+      ) : (
+        <div className="animate-in fade-in duration-500 px-1">
+          <button onClick={anasayfayaDon} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm tracking-widest uppercase">← Ana Ekran</button>
+          
+          <div className="flex justify-between mb-12 relative max-w-2xl mx-auto px-2">
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 -z-10" />
+            {adimlar.map((i) => (
+              <div key={i.n} className="flex flex-col items-center gap-2 relative bg-white px-1">
+                <div className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center font-black text-xs md:text-sm transition-all border-2 ${adim >= i.n ? "bg-[#002B67] border-[#002B67] text-white shadow-lg" : "bg-white text-slate-300 border-slate-100"}`}>{i.n}</div>
+                <span className={`text-[7px] md:text-[9px] font-black tracking-tighter ${adim >= i.n ? "text-[#002B67]" : "text-slate-200"}`}>{i.b}</span>
               </div>
-            </div>
-            <button disabled={!seciliGun} onClick={() => setAdim(2)} className="w-full max-w-sm py-5 rounded-[1.5rem] font-black text-lg shadow-2xl transition-all active:scale-95 uppercase tracking-widest bg-[#002B67] text-white hover:bg-[#001940] disabled:bg-slate-300 disabled:text-slate-500">Devam Et</button>
+            ))}
           </div>
-        )}
 
-        {adim === 2 && (
-          <div className="space-y-10 animate-in fade-in duration-500">
-            <div className="text-center font-black text-[#002B67] uppercase tracking-tighter">
-              <h2 className="text-3xl leading-none">Saha ve Saat Seçimi</h2>
-              <div className="mt-3 inline-block px-4 py-1.5 bg-blue-50 text-[#002B67] rounded-full text-[10px] tracking-widest border border-blue-100 uppercase">{seciliGun} {ayIsmi} {yil}</div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-5">
-              {sahalar.map((saha) => (
-                <button key={saha.id} onClick={() => setSeciliSaha(saha.id)} className={`p-8 rounded-[2rem] border-4 font-black transition-all text-left group ${seciliSaha === saha.id ? "border-[#002B67] bg-white text-[#002B67] shadow-xl" : "border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200"}`}>
-                  <div className={`w-14 h-14 rounded-2xl mb-4 flex items-center justify-center text-3xl transition-transform ${seciliSaha === saha.id ? "bg-blue-50 scale-110" : "bg-white"}`}>{saha.emoji}</div>
-                  {saha.id.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {tumSaatler.map((saat) => {
-                const saatParcasi = parseInt(saat.split(":")[0]);
-                const saatGecmis = seciliGun === buGunHangiGun && saatParcasi <= buSaatKac;
-                return (
-                  <button key={saat} disabled={saatGecmis} onClick={() => setSeciliSaat(saat)} className={`p-4 rounded-2xl border-2 font-black text-sm transition-all ${saatGecmis ? "bg-slate-100 text-slate-300 border-transparent cursor-not-allowed opacity-50" : seciliSaat === saat ? "bg-[#002B67] text-white border-[#002B67] shadow-lg scale-105" : "bg-white border-slate-100 text-slate-600 hover:border-[#002B67]"}`}>{saat}</button>
-                );
-              })}
-            </div>
-            <div className="flex gap-4 pt-4 border-t border-slate-50">
-              <button onClick={() => setAdim(1)} className="flex-1 py-5 font-black text-slate-400 bg-slate-50 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors">Geri</button>
-              <button disabled={!seciliSaha || !seciliSaat} onClick={() => setAdim(3)} className="flex-[2] py-5 rounded-2xl font-black transition-all uppercase tracking-widest bg-[#002B67] text-white disabled:bg-slate-300 shadow-xl shadow-blue-900/20">Kayıt Ekranı</button>
-            </div>
-          </div>
-        )}
+          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 md:p-12 min-h-[500px] flex flex-col justify-center relative overflow-hidden">
+            {adim === 1 && (
+              <div className="animate-in fade-in duration-500 text-center">
+                <h2 className="text-2xl font-black text-[#002B67] uppercase mb-8 tracking-tighter">Tarih Seçin</h2>
+                <div className="p-4 bg-slate-50 rounded-[2rem] border border-slate-100 mb-8 shadow-inner">
+                  <div className="mb-4 font-black text-[#002B67] uppercase tracking-widest text-sm">{ayIsmi} {yil}</div>
+                  <div className="grid grid-cols-7 gap-1 md:gap-2 max-w-sm mx-auto">
+                    {gunler.map((g) => {
+                      const gecmis = g < buGun;
+                      return (
+                        <button key={g} disabled={gecmis} onClick={() => setSeciliGun(g)} className={`aspect-square flex items-center justify-center text-[10px] md:text-xs font-bold rounded-xl border-2 transition-all ${gecmis ? "text-slate-300 border-transparent opacity-40" : seciliGun === g ? "bg-[#E30A17] text-white border-[#E30A17] scale-110 shadow-lg" : "bg-white text-slate-700 border-slate-100 hover:border-[#002B67]"}`}>{g}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <button disabled={!seciliGun} onClick={() => setAdim(2)} className="w-full max-w-xs py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl mx-auto block active:scale-95 transition-all">İLERLE</button>
+              </div>
+            )}
 
-        {adim === 3 && (
-          <div className="space-y-10 max-w-md mx-auto animate-in fade-in duration-500">
-            <div className="text-center font-black">
-              <h2 className="text-3xl text-[#002B67] uppercase tracking-tighter leading-none">Kayıt Bilgileri</h2>
-              <p className="text-[#E30A17] text-[10px] font-black uppercase mt-2 tracking-[0.25em]">{seciliSaha} / {seciliSaat}</p>
-            </div>
-            <div className="space-y-5">
-              <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Ad Soyad</label><input name="ad_soyad" type="text" placeholder="ÖR: AHMET YILMAZ" value={formData.ad_soyad} onChange={handleInputChange} className="w-full p-5 rounded-2xl border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-bold uppercase placeholder:text-slate-200 shadow-sm" /></div>
-              <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">Telefon</label><input name="telefon" type="tel" placeholder="05XX XXX XX XX" value={formData.telefon} onChange={handleInputChange} className="w-full p-5 rounded-2xl border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-bold tracking-[0.2em] placeholder:text-slate-200 shadow-sm" /></div>
-              <div className="space-y-1.5"><label className="text-[10px] font-black text-slate-400 uppercase ml-4 tracking-widest">E-Posta</label><input name="eposta" type="text" placeholder="Ornek@mail.com" value={formData.eposta} onChange={handleInputChange} className="w-full p-5 rounded-2xl border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-bold placeholder:text-slate-200 shadow-sm" /></div>
-            </div>
-            <div className="flex gap-4 pt-4 border-t border-slate-50">
-              <button onClick={() => setAdim(2)} className="flex-1 py-5 font-black text-slate-400 bg-slate-50 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors">Geri</button>
-              <button disabled={!formGecerli} onClick={() => setAdim(4)} className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase tracking-widest disabled:bg-slate-300 shadow-xl shadow-blue-900/20">Onay Kodu Gönder</button>
-            </div>
-          </div>
-        )}
+            {adim === 2 && (
+              <div className="space-y-8 animate-in fade-in duration-500 text-center">
+                <h2 className="text-2xl font-black text-[#002B67] uppercase tracking-tighter">Saha ve Saat</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[ {id: "Voleybol Sahası", e: "🏐"}, {id: "Basketbol Sahası", e: "🏀"} ].map((s) => (
+                    <button key={s.id} onClick={() => setSeciliSaha(s.id)} className={`p-6 rounded-2xl border-4 font-black transition-all flex items-center gap-4 ${seciliSaha === s.id ? "border-[#002B67] bg-white text-[#002B67] shadow-xl" : "border-slate-50 bg-slate-50 text-slate-400"}`}>
+                      <span className="text-3xl">{s.e}</span>
+                      <span className="text-sm font-black uppercase text-left tracking-tighter">{s.id}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {tumSaatler.map((s) => {
+                    const gecmis = seciliGun === buGun && parseInt(s) <= buSaat;
+                    return (
+                      <button key={s} disabled={gecmis} onClick={() => setSeciliSaat(s)} className={`py-4 rounded-xl border-2 font-black text-[10px] md:text-xs transition-all ${gecmis ? "text-slate-200 border-transparent opacity-40" : seciliSaat === s ? "bg-[#002B67] text-white border-[#002B67] shadow-md" : "bg-white border-slate-100 text-slate-600 hover:border-[#E30A17]"}`}>{s}</button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-col md:flex-row gap-4 max-w-xs mx-auto">
+                    <button onClick={() => setAdim(1)} className="flex-1 py-5 rounded-2xl font-black border-2 border-[#002B67] text-[#002B67] uppercase transition-all hover:bg-slate-50">Geri Dön</button>
+                    <button disabled={!seciliSaha || !seciliSaat} onClick={() => setAdim(3)} className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-lg block tracking-widest disabled:opacity-50">Devam Et</button>
+                </div>
+              </div>
+            )}
 
-        {adim === 4 && (
-          <div className="space-y-10 max-w-md mx-auto animate-in zoom-in duration-500">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-blue-50 text-[#002B67] rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-inner">✉️</div>
-              <h2 className="text-3xl font-black text-[#002B67] uppercase tracking-tighter leading-none">Doğrulama</h2>
-              <p className="text-slate-400 text-[10px] font-black mt-2 leading-relaxed uppercase tracking-widest">
-                <span className="text-[#002B67] normal-case">{formData.eposta}</span> ADRESİNE GÖNDERİLEN 6 HANELİ KODU GİRİNİZ.
-              </p>
-            </div>
-            <input 
-              type="text" 
-              maxLength={6} 
-              placeholder="000000"
-              value={onayKodu}
-              onChange={(e) => setOnayKodu(e.target.value.replace(/\D/g, ""))}
-              className="w-full p-6 text-center text-4xl font-black tracking-[0.5em] border-2 border-slate-100 rounded-3xl focus:border-[#002B67] outline-none text-[#002B67] bg-slate-50 focus:bg-white transition-all shadow-inner" 
-            />
-            <div className="flex gap-4 pt-4 border-t border-slate-50">
-              <button onClick={() => setAdim(3)} className="flex-1 py-5 font-black text-slate-400 bg-slate-50 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors">Geri</button>
-              <button 
-                disabled={onayKodu.length !== 6} 
-                onClick={() => setAdim(5)} 
-                className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white disabled:bg-slate-300 uppercase tracking-widest shadow-xl shadow-blue-900/10"
-              >
-                Onayla ve Bitir
-              </button>
-            </div>
-          </div>
-        )}
+            {adim === 3 && (
+              <div className="space-y-5 max-w-md mx-auto animate-in fade-in duration-500 w-full">
+                <h2 className="text-2xl font-black text-[#002B67] text-center uppercase mb-4 tracking-tighter">Kayıt Bilgileri</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Ad</label>
+                    <input autoComplete="given-name" placeholder="AHMET" value={formData.ad} onChange={(e) => handleInputChange("ad", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-black text-sm uppercase placeholder:normal-case shadow-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Soyad</label>
+                    <input autoComplete="family-name" placeholder="YILMAZ" value={formData.soy_ad} onChange={(e) => handleInputChange("soy_ad", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-black text-sm uppercase shadow-sm" />
+                  </div>
+                </div>
+                <div className="space-y-4 pt-2">
+                  <input autoComplete="off" placeholder="T.C. KİMLİK NO" value={formData.tc_no} onChange={(e) => handleInputChange("tc_no", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-black tracking-widest text-sm shadow-sm" />
+                  <input autoComplete="tel" placeholder="05XX XXX XX XX" value={formData.telefon} onChange={(e) => handleInputChange("telefon", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-black text-sm shadow-sm" />
+                  <input autoComplete="email" placeholder="örnek@mail.com" value={formData.eposta} onChange={(e) => handleInputChange("eposta", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-medium text-sm normal-case shadow-sm" />
+                </div>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <button onClick={() => setAdim(2)} className="flex-1 py-5 rounded-2xl font-black border-2 border-[#002B67] text-[#002B67] uppercase transition-all hover:bg-slate-50">Geri Dön</button>
+                    <button disabled={!formGecerli} onClick={() => setAdim(4)} className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl transition-all tracking-widest disabled:opacity-50">Kod Gönder</button>
+                </div>
+              </div>
+            )}
 
-        {adim === 5 && (
-          <div className="text-center py-6 space-y-10 animate-in zoom-in duration-700">
-            <div className="w-24 h-24 bg-blue-50 text-[#002B67] rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner border border-blue-100 transition-transform hover:scale-105">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h2 className="text-4xl font-black text-[#002B67] uppercase tracking-tighter leading-none leading-[0.85]">Randevunuz<br/>Oluşturuldu</h2>
-            <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-[11px] font-black text-slate-400 space-y-4 uppercase tracking-widest shadow-inner relative overflow-hidden">
-               <div className="absolute top-0 left-0 w-2 h-full bg-[#002B67]" />
-              <div className="flex justify-between border-b border-slate-200 pb-3"><span>KİŞİ</span><span className="text-[#002B67] font-black">{formData.ad_soyad}</span></div>
-              <div className="flex justify-between border-b border-slate-200 pb-3"><span>SAHA</span><span className="text-[#002B67] font-black">{seciliSaha}</span></div>
-              <div className="flex justify-between border-b border-slate-200 pb-3"><span>TARİH</span><span className="text-[#002B67] font-black">{seciliGun} {ayIsmi.toUpperCase()} {yil}</span></div>
-              <div className="flex justify-between"><span>SAAT</span><span className="text-[#002B67] font-black">{seciliSaat}</span></div>
-            </div>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em] max-w-sm mx-auto italic leading-relaxed">Onay kodu <span className="normal-case text-[#002B67] font-black bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm">{formData.eposta}</span> adresine iletildi.</p>
-            <div className="w-16 h-1 bg-[#002B67] mx-auto rounded-full mt-4 mb-2 shadow-sm opacity-80"></div>
-            <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest italic leading-none">Randevu Detayları e-postanıza gönderilmiştir.</p>
-            <button onClick={() => window.location.reload()} className="mt-4 px-10 py-4 bg-[#002B67] text-white rounded-full font-black uppercase text-[10px] tracking-[0.3em] shadow-xl shadow-blue-900/20 hover:bg-[#E30A17] transition-all duration-300 active:scale-95">Yeni Randevu Oluştur</button>
+            {adim === 4 && (
+              <div className="space-y-8 max-w-md mx-auto animate-in zoom-in duration-500 text-center w-full">
+                <h2 className="text-2xl font-black text-[#002B67] uppercase tracking-tighter">Doğrulama</h2>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                  <span className="normal-case font-black text-[#002B67]">{formData.eposta}</span> ADRESİNE GELEN KODU GİRİNİZ
+                </p>
+                <input type="text" maxLength={6} placeholder="000000" value={onayKodu} onChange={(e) => setOnayKodu(e.target.value.replace(/\D/g, ""))} className="w-full h-20 text-center text-4xl font-black tracking-[0.4em] border-2 border-slate-100 rounded-3xl focus:border-[#E30A17] outline-none text-[#002B67] bg-white shadow-sm" />
+                <div className="flex flex-col md:flex-row gap-4">
+                    <button onClick={() => setAdim(3)} className="flex-1 py-5 rounded-2xl font-black border-2 border-[#002B67] text-[#002B67] uppercase">Geri</button>
+                    <button disabled={onayKodu.length !== 6} onClick={() => setAdim(5)} className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl tracking-widest disabled:opacity-50">İleri</button>
+                </div>
+              </div>
+            )}
+
+            {adim === 5 && (
+              <div className="animate-in fade-in duration-500 w-full">
+                <h2 className="text-2xl font-black text-[#002B67] text-center uppercase mb-6 tracking-tighter">Takım Listesi ({katilimciSayisi} Kişi)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8 max-h-[350px] overflow-y-auto p-2 scrollbar-thin">
+                  {katilimcilar.slice(0, katilimciSayisi).map((k, index) => (
+                    <input 
+                      key={index} 
+                      id={`takim-${index}`} 
+                      value={k} 
+                      onChange={(e) => {
+                        const yeni = [...katilimcilar];
+                        yeni[index] = e.target.value.toUpperCase();
+                        setKatilimcilar(yeni);
+                      }} 
+                      onKeyDown={(e) => {
+                        if(e.key === "Enter") {
+                          e.preventDefault();
+                          const next = document.getElementById(`takim-${index + 1}`);
+                          if (next) next.focus();
+                          else if (takimGecerli) setAdim(6);
+                        }
+                      }} 
+                      placeholder={`${index + 1}. KATILIMCI AD SOYAD`} 
+                      className="h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-black uppercase text-[10px] tracking-tight shadow-sm" 
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-col md:flex-row gap-4">
+                    <button onClick={() => setAdim(3)} className="flex-1 py-5 rounded-2xl font-black border-2 border-[#002B67] text-[#002B67] uppercase">Geri</button>
+                    <button disabled={!takimGecerli} onClick={() => setAdim(6)} className="flex-[2] py-5 rounded-2xl font-black bg-[#002B67] text-white shadow-xl uppercase tracking-widest disabled:opacity-50">Randevu Al</button>
+                </div>
+              </div>
+            )}
+
+            {adim === 6 && (
+              <div className="text-center py-6 animate-in zoom-in duration-700 w-full">
+                <div className="w-20 h-20 bg-blue-50 text-[#002B67] rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-blue-100 shadow-inner">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <h2 className="text-3xl font-black text-[#002B67] uppercase mb-8 tracking-tighter">İşlem Tamam!</h2>
+                <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-[10px] font-black text-slate-400 space-y-4 uppercase tracking-widest text-left relative overflow-hidden shadow-inner mb-8">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-[#E30A17]" />
+                  <div className="flex justify-between border-b border-white pb-3 px-2"><span>Sorumlu</span><span className="text-[#002B67] uppercase">{formData.ad} {formData.soy_ad}</span></div>
+                  <div className="flex justify-between border-b border-white pb-3 px-2"><span>E-Posta</span><span className="text-[#002B67] normal-case font-medium italic">{formData.eposta}</span></div>
+                  <div className="flex justify-between border-b border-white pb-3 px-2"><span>Saha / Saat</span><span className="text-[#002B67] uppercase">{seciliSaha} / {seciliSaat}</span></div>
+                  <div className="flex justify-between px-2"><span>Tarih</span><span className="text-[#002B67] font-bold uppercase">{seciliGun} {ayIsmi}</span></div>
+                </div>
+                <button onClick={anasayfayaDon} className="px-12 py-5 bg-[#002B67] text-white rounded-full font-black uppercase shadow-2xl hover:bg-[#E30A17] transition-all tracking-[0.2em]">ANASAYFAYA DÖN</button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
