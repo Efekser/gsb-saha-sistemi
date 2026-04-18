@@ -47,14 +47,6 @@ export default function Home() {
   const [sorguEposta, setSorguEposta] = useState("");
   const [bulunanRandevu, setBulunanRandevu] = useState<any>(null);
 
-  useEffect(() => {
-    if (adim >= 3 || islemTuru === "sorgula") {
-      setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 300);
-    }
-  }, [adim, islemTuru]);
-
   const anasayfayaDon = () => {
     setIslemTuru(null);
     setAdim(1);
@@ -69,16 +61,42 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (islemTuru || adim > 1) {
-      window.history.pushState(null, "", window.location.href);
-      const handlePopState = () => {
-        if (adim > 1) setAdim(prev => prev - 1);
-        else anasayfayaDon();
-      };
-      window.addEventListener("popstate", handlePopState);
-      return () => window.removeEventListener("popstate", handlePopState);
+    if (adim >= 3 || islemTuru === "sorgula") {
+      setTimeout(() => {
+        firstInputRef.current?.focus();
+      }, 300);
     }
+  }, [adim, islemTuru]);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (islemTuru) {
+        if (islemTuru === "sorgula") {
+          anasayfayaDon();
+        } else if (islemTuru === "al") {
+          if (adim > 1) {
+            setAdim((prev) => prev - 1);
+            window.history.pushState({ adim: adim - 1 }, "");
+          } else {
+            anasayfayaDon();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [islemTuru, adim]);
+
+  const sonrakiAdim = (n: number) => {
+    setAdim(n);
+    window.history.pushState({ adim: n }, "");
+  };
+
+  const islemBaslat = (tur: "al" | "sorgula") => {
+    setIslemTuru(tur);
+    window.history.pushState({ tur }, "");
+  };
 
   const formatPhoneNumber = (value: string) => {
     const s = value.replace(/\D/g, "");
@@ -144,11 +162,11 @@ export default function Home() {
              <div className="h-1.5 w-24 bg-[#E30A17] mx-auto rounded-full mt-2"></div>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-             <button onClick={() => setIslemTuru("al")} className="group p-8 md:p-10 bg-[#002B67] text-white rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-blue-950">
+             <button onClick={() => islemBaslat("al")} className="group p-8 md:p-10 bg-[#002B67] text-white rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-blue-950">
                <span className="text-4xl mb-4 group-hover:animate-bounce transition-transform">⚽</span>
                <span className="font-black text-lg md:text-xl tracking-widest uppercase text-center">Randevu Al</span>
              </button>
-             <button onClick={() => setIslemTuru("sorgula")} className="group p-8 md:p-10 bg-white text-[#002B67] border-4 border-[#002B67] rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-slate-200">
+             <button onClick={() => islemBaslat("sorgula")} className="group p-8 md:p-10 bg-white text-[#002B67] border-4 border-[#002B67] rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-slate-200">
                <span className="text-4xl mb-4 group-hover:animate-[spin_3s_linear_infinite] transition-transform">🔍</span>
                <span className="font-black text-lg md:text-xl tracking-widest uppercase text-center">Sorgulama</span>
              </button>
@@ -156,7 +174,7 @@ export default function Home() {
         </div>
       ) : islemTuru === "sorgula" ? (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto w-full px-2">
-           <button onClick={anasayfayaDon} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase">← Ana Ekran</button>
+           <button onClick={() => window.history.back()} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase">← Ana Ekran</button>
            <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-50 p-6 md:p-10">
              <h2 className="text-2xl font-black text-[#002B67] uppercase text-center mb-10 tracking-tighter">Randevu Sorgulama</h2>
              <div className="space-y-4 mb-10">
@@ -204,7 +222,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="animate-in fade-in duration-500 px-1">
-          <button onClick={anasayfayaDon} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm tracking-widest uppercase">← Ana Ekran</button>
+          <button onClick={() => window.history.back()} className="mb-6 font-black text-[#002B67] flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm tracking-widest uppercase">← Ana Ekran</button>
           
           <div className="flex justify-between mb-12 relative max-w-2xl mx-auto px-2">
             <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 -z-10" />
@@ -231,7 +249,7 @@ export default function Home() {
                     })}
                   </div>
                 </div>
-                <button disabled={!seciliGun} onClick={() => setAdim(2)} className="w-full max-w-xs py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl mx-auto block active:scale-95 transition-all">İLERLE</button>
+                <button disabled={!seciliGun} onClick={() => sonrakiAdim(2)} className="w-full max-w-xs py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl mx-auto block active:scale-95 transition-all">İLERLE</button>
               </div>
             )}
 
@@ -254,10 +272,9 @@ export default function Home() {
                     );
                   })}
                 </div>
-                {/* RESPONSIVE BUTONLAR - Mobilde Alt Alta, Masaüstünde Yan Yana */}
                 <div className="flex flex-col md:flex-row-reverse gap-4 max-w-xs md:max-w-md mx-auto">
-                    <button disabled={!seciliSaha || !seciliSaat} onClick={() => setAdim(3)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-lg block tracking-widest disabled:opacity-50">Devam Et</button>
-                    <button onClick={() => setAdim(1)} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase transition-all hover:bg-slate-50 text-xs md:text-sm">Geri Dön</button>
+                    <button disabled={!seciliSaha || !seciliSaat} onClick={() => sonrakiAdim(3)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-lg block tracking-widest disabled:opacity-50">Devam Et</button>
+                    <button onClick={() => window.history.back()} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase transition-all hover:bg-slate-50 text-xs md:text-sm">Geri Dön</button>
                 </div>
               </div>
             )}
@@ -285,10 +302,9 @@ export default function Home() {
                     <input type="email" autoComplete="email" placeholder="örnek@mail.com" value={formData.eposta} onChange={(e) => handleInputChange("eposta", e.target.value)} className="w-full h-12 px-4 rounded-xl border-2 border-slate-100 bg-white focus:border-[#E30A17] outline-none font-medium text-sm normal-case shadow-sm" />
                   </div>
                 </div>
-                {/* RESPONSIVE BUTONLAR */}
                 <div className="flex flex-col md:flex-row-reverse gap-4 pt-4">
-                    <button disabled={!formGecerli} onClick={() => setAdim(4)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl transition-all tracking-widest disabled:opacity-50">Kod Gönder</button>
-                    <button onClick={() => setAdim(2)} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase transition-all hover:bg-slate-50 text-xs md:text-sm">Geri Dön</button>
+                    <button disabled={!formGecerli} onClick={() => sonrakiAdim(4)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl transition-all tracking-widest disabled:opacity-50">Kod Gönder</button>
+                    <button onClick={() => window.history.back()} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase transition-all hover:bg-slate-50 text-xs md:text-sm">Geri Dön</button>
                 </div>
               </div>
             )}
@@ -300,10 +316,9 @@ export default function Home() {
                   <span className="normal-case font-black text-[#002B67]">{formData.eposta}</span> ADRESİNE GELEN KODU GİRİNİZ
                 </p>
                 <input ref={firstInputRef} type="text" pattern="\d*" inputMode="numeric" maxLength={6} placeholder="000000" value={onayKodu} onChange={(e) => setOnayKodu(e.target.value.replace(/\D/g, ""))} className="w-full h-24 text-center text-5xl md:text-6xl font-black tracking-[0.4em] border-2 border-slate-100 rounded-3xl focus:border-[#E30A17] outline-none text-[#002B67] bg-white shadow-sm" />
-                {/* RESPONSIVE BUTONLAR */}
                 <div className="flex flex-col md:flex-row-reverse gap-4">
-                    <button disabled={onayKodu.length !== 6} onClick={() => setAdim(5)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl tracking-widest disabled:opacity-50">İleri</button>
-                    <button onClick={() => setAdim(3)} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase text-xs md:text-sm">Geri</button>
+                    <button disabled={onayKodu.length !== 6} onClick={() => sonrakiAdim(5)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl tracking-widest disabled:opacity-50">İleri</button>
+                    <button onClick={() => window.history.back()} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase text-xs md:text-sm">Geri</button>
                 </div>
               </div>
             )}
@@ -335,10 +350,9 @@ export default function Home() {
                     />
                   ))}
                 </div>
-                {/* RESPONSIVE BUTONLAR */}
                 <div className="flex flex-col md:flex-row-reverse gap-4 mt-auto">
-                    <button disabled={!takimGecerli} onClick={() => setAdim(6)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white shadow-xl uppercase tracking-widest disabled:opacity-50">Randevu Al</button>
-                    <button onClick={() => setAdim(3)} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase text-xs md:text-sm">Geri</button>
+                    <button disabled={!takimGecerli} onClick={() => sonrakiAdim(6)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white shadow-xl uppercase tracking-widest disabled:opacity-50">Randevu Al</button>
+                    <button onClick={() => window.history.back()} className="w-full py-4 md:py-5 rounded-2xl font-black border-2 border-slate-100 text-slate-400 uppercase text-xs md:text-sm">Geri</button>
                 </div>
               </div>
             )}
