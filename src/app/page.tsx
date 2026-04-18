@@ -69,17 +69,13 @@ export default function Home() {
   }, [adim, islemTuru]);
 
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
+    const handlePopState = () => {
       if (islemTuru) {
-        if (islemTuru === "sorgula") {
-          anasayfayaDon();
-        } else if (islemTuru === "al") {
-          if (adim > 1) {
-            setAdim((prev) => prev - 1);
-            window.history.pushState({ adim: adim - 1 }, "");
-          } else {
-            anasayfayaDon();
-          }
+        if (adim > 1) {
+          setAdim((prev) => prev - 1);
+        } else {
+          setIslemTuru(null);
+          setAdim(1);
         }
       }
     };
@@ -95,7 +91,8 @@ export default function Home() {
 
   const islemBaslat = (tur: "al" | "sorgula") => {
     setIslemTuru(tur);
-    window.history.pushState({ tur }, "");
+    setAdim(1);
+    window.history.pushState({ tur, adim: 1 }, "");
   };
 
   const formatPhoneNumber = (value: string) => {
@@ -186,7 +183,7 @@ export default function Home() {
                    placeholder="örnek@mail.com" 
                    value={sorguEposta}
                    onChange={(e) => setSorguEposta(e.target.value)}
-                   className="w-full h-16 px-6 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-bold text-lg text-center shadow-inner tracking-tight"
+                   className="w-full h-16 px-6 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-[#002B67] outline-none font-bold text-lg text-center transition-all shadow-inner tracking-tight"
                  />
                </div>
                <button onClick={handleSorgula} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl active:scale-95 transition-all tracking-widest">SORGULA</button>
