@@ -26,10 +26,21 @@ export default function Home() {
   const simdi = useMemo(() => new Date(), []);
   const ayIsmi = simdi.toLocaleString('tr-TR', { month: 'long' });
   const yil = simdi.getFullYear();
+  const ayIndex = simdi.getMonth();
   const buGun = simdi.getDate();
   const buSaat = simdi.getHours();
 
-  const gunler = Array.from({ length: new Date(yil, simdi.getMonth() + 1, 0).getDate() }, (_, i) => i + 1);
+  const takvimVerileri = useMemo(() => {
+    const ilkGun = new Date(yil, ayIndex, 1).getDay();
+    const ayinGunSayisi = new Date(yil, ayIndex + 1, 0).getDate();
+    const gunBosluklari = ilkGun === 0 ? 6 : ilkGun - 1;
+    const gunler = [];
+    for (let i = 0; i < gunBosluklari; i++) gunler.push(null);
+    for (let i = 1; i <= ayinGunSayisi; i++) gunler.push(i);
+    return gunler;
+  }, [yil, ayIndex]);
+
+  const haftaninGunleri = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
   
   const tumSaatler = useMemo(() => {
     const hours = [];
@@ -86,6 +97,7 @@ export default function Home() {
       if (islemTuru) {
         if (adim > 1) {
           setAdim((prev) => prev - 1);
+          window.history.pushState({ adim: adim - 1 }, "");
         } else {
           setIslemTuru(null);
           setAdim(1);
@@ -133,7 +145,7 @@ export default function Home() {
   }, [katilimcilar, katilimciSayisi]);
 
   const iptalButonuAktif = (randevuGunu: number) => {
-    const randevuTarihi = new Date(yil, simdi.getMonth(), randevuGunu);
+    const randevuTarihi = new Date(yil, ayIndex, randevuGunu);
     const fark = randevuTarihi.getTime() - simdi.getTime();
     return (fark / (1000 * 60 * 60)) > 24;
   };
@@ -193,20 +205,22 @@ export default function Home() {
            <button onClick={() => window.history.back()} className={`mb-6 font-black ${isDarkMode ? "text-slate-400" : "text-[#002B67]"} flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase`}>← Geri Dön</button>
            <div className={`${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-50"} rounded-[2.5rem] shadow-2xl border p-6 md:p-10`}>
              <h2 className={`text-2xl font-black ${isDarkMode ? "text-white" : "text-[#002B67]"} uppercase text-center mb-10 tracking-tighter`}>Randevu Sorgulama</h2>
-             <div className="space-y-4 mb-10">
+             <form onSubmit={(e) => { e.preventDefault(); handleSorgula(); }} className="space-y-4 mb-10">
                <div className="space-y-1 text-center">
                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-POSTA ADRESİ</label>
                  <input 
                    ref={firstInputRef}
                    type="email"
+                   name="email"
+                   autoComplete="email"
                    placeholder="örnek@mail.com" 
                    value={sorguEposta}
                    onChange={(e) => setSorguEposta(e.target.value)}
                    className={`w-full h-16 px-6 rounded-2xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-slate-50 border-slate-100 text-slate-900 focus:bg-white focus:border-[#002B67]"} outline-none font-bold text-lg text-center transition-all shadow-inner tracking-tight`}
                  />
                </div>
-               <button onClick={handleSorgula} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl active:scale-95 transition-all tracking-widest">SORGULA</button>
-             </div>
+               <button type="submit" className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl active:scale-95 transition-all tracking-widest">SORGULA</button>
+             </form>
 
              {bulunanRandevu && (
                <div className="space-y-6 animate-in zoom-in duration-500">
@@ -244,7 +258,7 @@ export default function Home() {
             {adimlar.map((i) => (
               <div key={i.n} className="flex flex-col items-center gap-2 relative transition-colors duration-300">
                 <div className={`w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center font-black text-xs md:text-sm transition-all border-2 ${adim >= i.n ? "bg-[#002B67] border-[#002B67] text-white shadow-lg" : isDarkMode ? "bg-[#0f172a] text-slate-600 border-slate-800" : "bg-white text-slate-300 border-slate-100"}`}>{i.n}</div>
-                <span className={`text-[7px] md:text-[9px] font-black tracking-tighter ${adim >= i.n ? (isDarkMode ? "text-white" : "text-[#002B67]") : "text-slate-500"}`}>{i.b}</span>
+                <span className={`text-[7px] md:text-[9px] font-black tracking-tighter ${adim >= i.n ? (isDarkMode ? "text-white" : "text-[#002B67]") : (isDarkMode ? "text-slate-700" : "text-slate-300")}`}>{i.b}</span>
               </div>
             ))}
           </div>
@@ -252,14 +266,23 @@ export default function Home() {
           <div className={`${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-50"} rounded-[2.5rem] shadow-2xl border p-6 md:p-12 min-h-[500px] flex flex-col justify-center relative overflow-hidden text-center mx-2`}>
             {adim === 1 && (
               <div className="animate-in fade-in">
-                <h2 className={`text-2xl font-black ${isDarkMode ? "text-white" : "text-[#002B67]"} uppercase mb-8 tracking-tighter`}>Tarih Seçin</h2>
-                <div className={`p-4 ${isDarkMode ? "bg-slate-900 border-slate-700" : "bg-slate-50 border-slate-100"} rounded-[2rem] border mb-8 shadow-inner overflow-hidden`}>
-                  <div className={`mb-4 font-black ${isDarkMode ? "text-slate-400" : "text-[#002B67]"} uppercase tracking-widest text-sm`}>{ayIsmi} {yil}</div>
-                  <div className="grid grid-cols-7 gap-1 md:gap-2 max-w-sm mx-auto">
-                    {gunler.map((g) => {
+                <h2 className={`text-2xl font-black ${isDarkMode ? "text-white" : "text-[#002B67]"} uppercase mb-6 tracking-tighter`}>Tarih Seçin</h2>
+                <div className={`p-6 ${isDarkMode ? "bg-slate-900 border-slate-700" : "bg-slate-50 border-slate-100"} rounded-[2rem] border mb-8 shadow-inner`}>
+                  <div className={`mb-6 font-black ${isDarkMode ? "text-slate-400" : "text-[#002B67]"} uppercase tracking-widest text-sm flex justify-center gap-2`}>
+                    <span>{ayIsmi}</span>
+                    <span>{yil}</span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-2 max-w-sm mx-auto mb-2 text-center">
+                    {haftaninGunleri.map(hg => (
+                      <div key={hg} className="text-[10px] font-black text-slate-400 uppercase">{hg}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-2 max-w-sm mx-auto">
+                    {takvimVerileri.map((g, index) => {
+                      if (!g) return <div key={`empty-${index}`} className="aspect-square" />;
                       const gecmis = g < buGun;
                       return (
-                        <button key={g} disabled={gecmis} onClick={() => setSeciliGun(g)} className={`aspect-square flex items-center justify-center text-[10px] md:text-xs font-bold rounded-xl border-2 transition-all ${gecmis ? "opacity-20 pointer-events-none" : seciliGun === g ? "bg-[#E30A17] text-white border-[#E30A17] scale-110 shadow-lg" : isDarkMode ? "bg-slate-800 text-white border-slate-700 hover:border-[#E30A17]" : "bg-white text-slate-700 border-slate-100 hover:border-[#002B67]"}`}>{g}</button>
+                        <button key={index} disabled={gecmis} onClick={() => setSeciliGun(g)} className={`aspect-square flex items-center justify-center text-xs font-bold rounded-xl border-2 transition-all ${gecmis ? "opacity-20 pointer-events-none" : seciliGun === g ? "bg-[#E30A17] text-white border-[#E30A17] scale-110 shadow-lg" : isDarkMode ? "bg-slate-800 text-white border-slate-700 hover:border-[#002B67]" : "bg-white text-slate-700 border-slate-100 hover:border-[#002B67]"}`}>{g}</button>
                       );
                     })}
                   </div>
@@ -300,21 +323,52 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Ad</label>
-                    <input ref={firstInputRef} autoComplete="off" placeholder="AHMET" value={formData.ad} onChange={(e) => handleInputChange("ad", e.target.value)} className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm uppercase placeholder:normal-case shadow-sm`} />
+                    <input 
+                      ref={firstInputRef} 
+                      name="given-name"
+                      autoComplete="given-name" 
+                      placeholder="AHMET" 
+                      value={formData.ad} 
+                      onChange={(e) => handleInputChange("ad", e.target.value)} 
+                      className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm uppercase placeholder:normal-case shadow-sm`} 
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Soyad</label>
-                    <input autoComplete="off" placeholder="YILMAZ" value={formData.soy_ad} onChange={(e) => handleInputChange("soy_ad", e.target.value)} className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm uppercase shadow-sm`} />
+                    <input 
+                      name="family-name"
+                      autoComplete="family-name" 
+                      placeholder="YILMAZ" 
+                      value={formData.soy_ad} 
+                      onChange={(e) => handleInputChange("soy_ad", e.target.value)} 
+                      className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm uppercase shadow-sm`} 
+                    />
                   </div>
                 </div>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">Telefon</label>
-                    <input type="tel" autoComplete="off" placeholder="05XX XXX XX XX" value={formData.telefon} onChange={(e) => handleInputChange("telefon", e.target.value)} className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm shadow-sm`} />
+                    <input 
+                      type="tel" 
+                      name="tel"
+                      autoComplete="tel" 
+                      placeholder="05XX XXX XX XX" 
+                      value={formData.telefon} 
+                      onChange={(e) => handleInputChange("telefon", e.target.value)} 
+                      className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-black text-sm shadow-sm`} 
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">E-Posta</label>
-                    <input type="email" autoComplete="off" placeholder="örnek@mail.com" value={formData.eposta} onChange={(e) => handleInputChange("eposta", e.target.value)} className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-medium text-sm normal-case shadow-sm`} />
+                    <input 
+                      type="email" 
+                      name="email"
+                      autoComplete="email" 
+                      placeholder="örnek@mail.com" 
+                      value={formData.eposta} 
+                      onChange={(e) => handleInputChange("eposta", e.target.value)} 
+                      className={`w-full h-12 px-4 rounded-xl border-2 ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-slate-900 focus:border-[#002B67]"} outline-none font-medium text-sm normal-case shadow-sm`} 
+                    />
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row-reverse gap-4 pt-4">
