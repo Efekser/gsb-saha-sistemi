@@ -137,7 +137,8 @@ export default function Home() {
     setFormData(prev => ({ ...prev, [field]: v }));
   };
 
-  const formGecerli = formData.ad.length > 1 && formData.soy_ad.length > 1 && formData.telefon.length === 14 && formData.eposta.includes("@");
+  const epostaRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const formGecerli = formData.ad.length > 1 && formData.soy_ad.length > 1 && formData.telefon.length === 14 && epostaRegex.test(formData.eposta);
   
   const takimGecerli = useMemo(() => {
     const aktifListe = katilimcilar.slice(0, katilimciSayisi);
@@ -151,7 +152,7 @@ export default function Home() {
   };
 
   const handleSorgula = () => {
-    if (sorguEposta.includes("@")) {
+    if (epostaRegex.test(sorguEposta)) {
       setBulunanRandevu({
         ad: "AHMET YILMAZ",
         saha: "Voleybol Sahası",
