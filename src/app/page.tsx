@@ -160,7 +160,7 @@ export default function Home() {
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
              <button onClick={() => islemBaslat("al")} className="group p-8 md:p-10 bg-[#002B67] text-white rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-blue-950">
-               <span className="text-4xl mb-4 group-hover:animate-bounce transition-transform">⚽</span>
+               <span className="text-4xl mb-4 group-hover:animate-bounce transition-transform">⚽abc</span>
                <span className="font-black text-lg md:text-xl tracking-widest uppercase text-center">Randevu Al</span>
              </button>
              <button onClick={() => islemBaslat("sorgula")} className="group p-8 md:p-10 bg-white text-[#002B67] border-4 border-[#002B67] rounded-[2.5rem] shadow-2xl hover:scale-105 transition-all flex flex-col items-center border-b-8 border-slate-200">
