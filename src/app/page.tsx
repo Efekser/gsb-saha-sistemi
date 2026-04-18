@@ -70,9 +70,7 @@ export default function Home() {
     setKatilimcilar(Array(11).fill(""));
     setSorguEposta("");
     setBulunanRandevu(null);
-    if (window.history.state?.step) {
-      window.history.replaceState(null, "");
-    }
+    window.history.pushState(null, "", window.location.pathname);
   };
 
   useEffect(() => {
@@ -93,31 +91,30 @@ export default function Home() {
   }, [adim, islemTuru]);
 
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      if (islemTuru) {
-        if (adim > 1) {
-          setAdim((prev) => prev - 1);
-          window.history.pushState({ adim: adim - 1 }, "");
-        } else {
-          setIslemTuru(null);
-          setAdim(1);
-        }
+    const handlePopState = () => {
+      const hash = window.location.hash;
+      if (!hash) {
+        setIslemTuru(null);
+        setAdim(1);
+      } else {
+        const currentStep = parseInt(hash.replace("#step", ""));
+        if (currentStep) setAdim(currentStep);
       }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [islemTuru, adim]);
+  }, []);
 
   const sonrakiAdim = (n: number) => {
     setAdim(n);
-    window.history.pushState({ step: n }, "");
+    window.history.pushState({ step: n }, "", `#step${n}`);
   };
 
   const islemBaslat = (tur: "al" | "sorgula") => {
     setIslemTuru(tur);
     setAdim(1);
-    window.history.pushState({ tur, step: 1 }, "");
+    window.history.pushState({ tur, step: 1 }, "", "#step1");
   };
 
   const formatPhoneNumber = (value: string) => {
@@ -203,7 +200,7 @@ export default function Home() {
         </div>
       ) : islemTuru === "sorgula" ? (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 max-w-2xl mx-auto w-full px-2 pt-4">
-           <button onClick={() => window.history.back()} className={`mb-6 font-black ${isDarkMode ? "text-slate-400" : "text-[#002B67]"} flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase`}>← Geri Dön</button>
+           <button onClick={() => window.history.back()} className={`mb-6 font-black ${isDarkMode ? "text-slate-200" : "text-[#002B67]"} flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase bg-transparent border-b-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"} pb-1`}>← Geri Dön</button>
            <div className={`${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-50"} rounded-[2.5rem] shadow-2xl border p-6 md:p-10`}>
              <h2 className={`text-2xl font-black ${isDarkMode ? "text-white" : "text-[#002B67]"} uppercase text-center mb-10 tracking-tighter`}>Randevu Sorgulama</h2>
              <form onSubmit={(e) => { e.preventDefault(); handleSorgula(); }} className="space-y-4 mb-10">
@@ -252,7 +249,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="animate-in fade-in duration-500 px-1 pt-4">
-          <button onClick={() => window.history.back()} className={`mb-6 ml-4 font-black ${isDarkMode ? "text-slate-400" : "text-[#002B67]"} flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase`}>← Ana Ekran</button>
+          <button onClick={() => window.history.back()} className={`mb-6 ml-4 font-black ${isDarkMode ? "text-slate-200" : "text-[#002B67]"} flex items-center gap-2 hover:translate-x-[-4px] transition-all text-sm uppercase bg-transparent border-b-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"} pb-1`}>← Geri Dön</button>
           
           <div className="flex justify-between mb-12 relative max-w-2xl mx-auto px-6">
             <div className={`absolute top-1/2 left-0 w-full h-0.5 ${isDarkMode ? "bg-slate-800" : "bg-slate-100"} -translate-y-1/2 -z-10`} />
@@ -313,7 +310,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col md:flex-row-reverse gap-4 max-w-xs md:max-w-md mx-auto">
                     <button disabled={!seciliSaha || !seciliSaat} onClick={() => sonrakiAdim(3)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-lg block active:scale-95">Devam Et</button>
-                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-700 text-slate-500" : "border-slate-100 text-slate-400"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm`}>Geri Dön</button>
+                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-600 text-slate-300" : "border-slate-300 text-slate-600"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm shadow-sm active:scale-95`}>Geri Dön</button>
                 </div>
               </div>
             )}
@@ -374,7 +371,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col md:flex-row-reverse gap-4 pt-4">
                     <button disabled={!formGecerli} onClick={() => sonrakiAdim(4)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl transition-all tracking-widest active:scale-95 disabled:opacity-50">Kod Gönder</button>
-                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-700 text-slate-500" : "border-slate-100 text-slate-400"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm`}>Geri Dön</button>
+                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-600 text-slate-300" : "border-slate-300 text-slate-600"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm shadow-sm active:scale-95`}>Geri Dön</button>
                 </div>
               </div>
             )}
@@ -388,7 +385,7 @@ export default function Home() {
                 <input ref={firstInputRef} type="text" pattern="\d*" inputMode="numeric" maxLength={6} placeholder="000000" value={onayKodu} onChange={(e) => setOnayKodu(e.target.value.replace(/\D/g, ""))} className={`w-full h-24 text-center text-5xl md:text-6xl font-black tracking-[0.4em] border-2 rounded-3xl outline-none transition-all ${isDarkMode ? "bg-slate-900 border-slate-700 text-white focus:border-[#E30A17]" : "bg-white border-slate-100 text-[#002B67] focus:border-[#002B67]"} shadow-sm`} />
                 <div className="flex flex-col md:flex-row-reverse gap-4">
                     <button disabled={onayKodu.length !== 6} onClick={() => sonrakiAdim(5)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white uppercase shadow-xl tracking-widest active:scale-95 disabled:opacity-50">İleri</button>
-                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-700 text-slate-500" : "border-slate-100 text-slate-400"} uppercase text-xs md:text-sm`}>Geri</button>
+                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-600 text-slate-300" : "border-slate-300 text-slate-600"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm shadow-sm active:scale-95`}>Geri</button>
                 </div>
               </div>
             )}
@@ -422,7 +419,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col md:flex-row-reverse gap-4 mt-auto">
                     <button disabled={!takimGecerli} onClick={() => sonrakiAdim(6)} className="w-full py-5 rounded-2xl font-black bg-[#002B67] text-white shadow-xl uppercase tracking-widest active:scale-95 disabled:opacity-50">Randevu Al</button>
-                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-700 text-slate-500" : "border-slate-100 text-slate-400"} uppercase text-xs md:text-sm`}>Geri</button>
+                    <button onClick={() => window.history.back()} className={`w-full py-4 md:py-5 rounded-2xl font-black border-2 ${isDarkMode ? "border-slate-600 text-slate-300" : "border-slate-300 text-slate-600"} uppercase transition-all hover:bg-slate-50 text-xs md:text-sm shadow-sm active:scale-95`}>Geri</button>
                 </div>
               </div>
             )}
